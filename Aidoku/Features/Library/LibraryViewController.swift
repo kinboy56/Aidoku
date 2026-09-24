@@ -147,8 +147,22 @@ class LibraryViewController: OldMangaCollectionViewController {
         )
         addButton.image = UIImage(systemName: "folder.badge.plus")
 
+        let downloadButton = UIBarButtonItem(
+            image: UIImage(systemName: "arrow.down.circle"),
+            menu: UIMenu(title: NSLocalizedString("DOWNLOAD"), children: [
+                UIAction(title: NSLocalizedString("ALL")) { [weak self] _ in
+                    self?.downloadSelected(unreadOnly: false)
+                },
+                UIAction(title: NSLocalizedString("UNREAD")) { [weak self] _ in
+                    self?.downloadSelected(unreadOnly: true)
+                }
+            ])
+        )
+
         toolbarItems = [
             deleteButton,
+            UIBarButtonItem(systemItem: .flexibleSpace),
+            downloadButton,
             UIBarButtonItem(systemItem: .flexibleSpace),
             addButton
         ]
@@ -585,8 +599,9 @@ extension LibraryViewController {
             }
             // enable items
             let hasSelectedItems = !(collectionView.indexPathsForSelectedItems?.isEmpty ?? true)
-            toolbarItems?.first?.isEnabled = hasSelectedItems
-            toolbarItems?.last?.isEnabled = hasSelectedItems
+            for item in toolbarItems ?? [] {
+                item.isEnabled = hasSelectedItems
+            }
         } else if !(self.navigationController?.isToolbarHidden ?? true) {
             // fade out toolbar
             UIView.animate(withDuration: CATransaction.animationDuration()) {
@@ -741,6 +756,42 @@ extension LibraryViewController {
             )),
             animated: true
         )
+    }
+
+    func downloadSelected(unreadOnly: Bool) {
+        let manga = (collectionView.indexPathsForSelectedItems ?? []).compactMap {
+            dataSource.itemIdentifier(for: $0)
+        }
+        if download(mangaInfo: manga, unreadOnly: unreadOnly) {
+            stopEditing()
+        }
+    }
+
+    @discardableResult
+    func download(mangaInfo: [MangaInfo], unreadOnly: Bool) -> Bool {
+        let downloadOnlyOnWifi = AppSettings.downloads.downloadOnlyOnWifi.get()
+        guard !downloadOnlyOnWifi || Reachability.getConnectionType() == .wifi else {
+            presentAlert(
+                title: NSLocalizedString("NO_WIFI_ALERT_TITLE"),
+                message: NSLocalizedString("NO_WIFI_ALERT_MESSAGE")
+            )
+            return false
+        }
+        let mangaInfo = mangaInfo.filter {
+            $0.id.sourceKey != LocalSourceRunner.sourceKey
+                && SourceManager.shared.store.isInstalled(sourceKey: $0.id.sourceKey)
+        }
+        Task {
+            for mangaInfo in mangaInfo {
+                let manga = mangaInfo.toManga().toNew()
+                if unreadOnly {
+                    await DownloadManager.shared.downloadUnread(manga: manga)
+                } else {
+                    await DownloadManager.shared.downloadAll(manga: manga)
+                }
+            }
+        }
+        return true
     }
 }
 
@@ -1515,35 +1566,11 @@ extension LibraryViewController {
             ]))
 
             let downloadAllAction = UIAction(title: NSLocalizedString("ALL")) { _ in
-                let downloadOnlyOnWifi = AppSettings.downloads.downloadOnlyOnWifi.get()
-                if downloadOnlyOnWifi && Reachability.getConnectionType() == .wifi || !downloadOnlyOnWifi  {
-                    Task {
-                        for mangaInfo in mangaInfo {
-                            await DownloadManager.shared.downloadAll(manga: mangaInfo.toManga().toNew())
-                        }
-                    }
-                } else {
-                    self.presentAlert(
-                        title: NSLocalizedString("NO_WIFI_ALERT_TITLE"),
-                        message: NSLocalizedString("NO_WIFI_ALERT_MESSAGE")
-                    )
-                }
+                self.download(mangaInfo: mangaInfo, unreadOnly: false)
             }
 
             let downloadUnreadAction = UIAction(title: NSLocalizedString("UNREAD")) { _ in
-                let downloadOnlyOnWifi = AppSettings.downloads.downloadOnlyOnWifi.get()
-                if downloadOnlyOnWifi && Reachability.getConnectionType() == .wifi || !downloadOnlyOnWifi  {
-                    Task {
-                        for manga in mangaInfo {
-                            await DownloadManager.shared.downloadUnread(manga: manga.toManga().toNew())
-                        }
-                    }
-                } else {
-                    self.presentAlert(
-                        title: NSLocalizedString("NO_WIFI_ALERT_TITLE"),
-                        message: NSLocalizedString("NO_WIFI_ALERT_MESSAGE")
-                    )
-                }
+                self.download(mangaInfo: mangaInfo, unreadOnly: true)
             }
 
             if
