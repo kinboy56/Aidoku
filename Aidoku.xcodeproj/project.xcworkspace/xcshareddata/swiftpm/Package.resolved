@@ -4,10 +4,10 @@
     {
       "identity" : "aidokurunner",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/Aidoku/AidokuRunner",
+      "location" : "https://github.com/kinboy56/AidokuRunner",
       "state" : {
-        "branch" : "main",
-        "revision" : "cc4d06ff399e7169b9c647bccede7cb29bc805c6"
+        "branch" : "fix-image-double-remove",
+        "revision" : "57f0bc9ac1ca93baeb3dcefb47b550ff08b54603"
       }
     },
     {
