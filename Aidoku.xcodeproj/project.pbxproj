@@ -704,9 +704,9 @@
 		};
 		FBFDF5F62DF799180064F603 /* XCRemoteSwiftPackageReference "AidokuRunner" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/Aidoku/AidokuRunner";
+			repositoryURL = "https://github.com/kinboy56/AidokuRunner";
 			requirement = {
-				branch = main;
+				branch = "fix-image-double-remove";
 				kind = branch;
 			};
 		};
