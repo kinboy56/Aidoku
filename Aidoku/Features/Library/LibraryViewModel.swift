@@ -616,6 +616,18 @@ extension LibraryViewModel {
         }
     }
 
+    // returns true if the stored sort differs from the current one
+    func reloadSortSettings() -> Bool {
+        let method = SortMethod(rawValue: AppSettings.library.sortOption.get()) ?? .lastOpened
+        let ascending = AppSettings.library.sortAscending.get()
+        guard sortMethod != method || sortAscending != ascending else {
+            return false
+        }
+        sortMethod = method
+        sortAscending = ascending
+        return true
+    }
+
     func setSort(method: SortMethod, ascending: Bool) async {
         guard sortMethod != method || sortAscending != ascending else {
             return

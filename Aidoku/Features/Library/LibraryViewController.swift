@@ -305,9 +305,14 @@ class LibraryViewController: OldMangaCollectionViewController {
         addObserver(forName: .updateLibrary) { [weak self] _ in
             guard let self else { return }
             Task { @MainActor in
+                // restoring a backup writes the sort settings directly to UserDefaults
+                let sortChanged = self.viewModel.reloadSortSettings()
                 await self.viewModel.loadLibrary()
                 self.updateEmptyStack()
                 self.updateDataSource()
+                if sortChanged {
+                    self.updateMoreMenu()
+                }
             }
         }
         addObserver(forName: .updateLibraryLock) { [weak self] _ in
